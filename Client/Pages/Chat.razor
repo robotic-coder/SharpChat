@@ -1,0 +1,102 @@
+@page "/chat"
+@using Microsoft.AspNetCore.SignalR.Client
+@using ChatApplication.Shared
+@inject NavigationManager NavigationManager
+@inject Blazored.LocalStorage.ISyncLocalStorageService localStorage
+@implements IAsyncDisposable
+
+<PageTitle>Registration</PageTitle>
+
+<div class="form-group">
+    <label>
+        Enter a message:
+        <input @bind="text" />
+    </label>
+</div>
+<button @onclick="DoSend" disabled="@(!IsReady)">Send</button>
+
+<hr>
+
+<ul id="messagesList">
+	@foreach (var message in oldMessages)
+    {
+        <li>@message.Sender: @message.Text</li>
+    }
+    @foreach (var message in newMessages)
+    {
+        <li>@message.Sender: @message.Text</li>
+    }
+</ul>
+
+@code {
+    private HubConnection? hubConnection;
+    private List<Message> oldMessages = new List<Message>();
+	private DateTime? oldMessagesLoaded;
+    private List<Message> newMessages = new List<Message>();
+    private string? userID;
+    private string? text;
+
+    protected override async Task OnInitializedAsync()
+    {
+        hubConnection = new HubConnectionBuilder()
+            .WithUrl(new Uri("https://localhost:7132/chatHub"))
+            .Build();
+
+        hubConnection.On<Message>("ReceiveMessage", (message) =>
+        {
+			if (this.oldMessagesLoaded == null || this.oldMessagesLoaded < message.Timestamp)
+			{
+				// Old messages have not loaded yet, so add this to the list in case it is not in history, or
+				// Message was received by the server after old messages were loaded, so it has to be new
+				this.newMessages.Add(message);
+			}
+			if (this.oldMessagesLoaded != null) // Don't show that messages have been received when we don't have history yet
+			{
+				StateHasChanged();
+			}
+        });
+
+		hubConnection.On("InvalidID", () =>
+        {
+            localStorage.RemoveItem("userID");
+            NavigationManager.NavigateTo("/register");
+        });
+
+        await hubConnection.StartAsync();
+
+        this.userID = localStorage.GetItem<string>("userID");
+        if (this.userID != null)
+        {
+			var messageHistory = await hubConnection.InvokeAsync<List<Message>?>("JoinChat", this.userID);
+			if (messageHistory != null)
+			{	
+				this.oldMessages = messageHistory;
+				this.newMessages = this.newMessages.FindAll(m => !this.oldMessages.Exists(m2 => m2.Id == m.Id));
+				this.oldMessagesLoaded = DateTime.Now;
+				StateHasChanged();
+			}
+        }
+		else
+		{
+			NavigationManager.NavigateTo("/");
+		}
+    }
+
+    private async Task DoSend()
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.SendAsync("SendMessage", this.text);
+        }
+    }
+
+    public bool IsReady => (hubConnection?.State == HubConnectionState.Connected);
+
+    public async ValueTask DisposeAsync()
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.DisposeAsync();
+        }
+    }
+}

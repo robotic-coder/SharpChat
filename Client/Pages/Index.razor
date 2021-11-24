@@ -1,0 +1,46 @@
+﻿@page "/"
+@using Microsoft.AspNetCore.SignalR.Client
+@inject NavigationManager NavigationManager
+@inject Blazored.LocalStorage.ISyncLocalStorageService localStorage
+@implements IAsyncDisposable
+
+@code {
+    private HubConnection? hubConnection;
+
+    protected override async Task OnInitializedAsync()
+    {
+        NavigationManager.NavigateTo("/register");
+        hubConnection = new HubConnectionBuilder()
+            .WithUrl(new Uri("https://localhost:7132/chatHub"))
+            .Build();
+
+        await hubConnection.StartAsync();
+
+        var userID = localStorage.GetItem<string>("userID");
+        if (userID != null)
+        {
+            if (await hubConnection.InvokeAsync<bool>("CheckID", userID))
+            {
+                NavigationManager.NavigateTo("/chat");
+            }
+            else
+            {
+                Console.WriteLine("UserID is not valid");
+                localStorage.RemoveItem("userID");
+                NavigationManager.NavigateTo("/register");
+            }
+        }
+        else
+        {
+            NavigationManager.NavigateTo("/register");
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.DisposeAsync();
+        }
+    }
+}
