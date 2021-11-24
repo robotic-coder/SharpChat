@@ -5,43 +5,74 @@ namespace ChatApplication.Server.Hubs
 {
     public class ChatHub : Hub
     {
-        private List<Message> messageHistory = new List<Message>();
-        private Dictionary<string, User> users = new Dictionary<string, User>();
+        private static List<Message> messageHistory = new List<Message>();
+        private static Dictionary<string, User> users = new Dictionary<string, User>();
+        private static Dictionary<string, User> chatConnections = new Dictionary<string, User>();
 
-        public async Task Register(string name, string surname, string username)
+        public string Register(string name, string surname, string username)
         {
-            Console.WriteLine($"Registering user {username}");
             var user = new User(name, surname, username);
             users.Add(user.Id, user);
-            await Clients.Caller.SendAsync("ReadyToJoin", user.Id, messageHistory);
+            return user.Id;
         }
 
-        public async Task JoinChat(string user)
+        public bool CheckID(string userID)
         {
-            await SendHelper(new SystemMessage($"{user} joined the chat"));
+            return users.ContainsKey(userID);
         }
 
-        public async Task SendMessage(string userID, string message)
-        {
-            if (users.ContainsKey(userID))
-            {
-                await SendHelper(new UserMessage(users[userID], message));
+        public async Task<List<Message>?> JoinChat(string userID)
+        {   
+            if (users.ContainsKey(userID)) {
+                chatConnections.Add(Context.ConnectionId, users[userID]);
+                await SendHelper(new SystemMessage($"{users[userID].Username} joined the chat"));
+                return messageHistory;
             }
             else
             {
-                await Clients.Caller.SendAsync("InvalidLogin");
+                await Clients.Caller.SendAsync("InvalidID");
+                return null;
             }
         }
 
-        public async Task LeaveChat(string user)
+        public async Task SendMessage(string message)
         {
-            await SendHelper(new SystemMessage($"{user} left the chat"));
+            var user = GetCurrentUser();
+            if (user != null)
+            {
+                await SendHelper(new UserMessage(user, message));
+            }
+            else
+            {
+                await Clients.Caller.SendAsync("InvalidID");
+            }
+        }
+
+        public override async Task OnDisconnectedAsync(Exception? exception)
+        {
+            var user = GetCurrentUser();
+            if (user != null)
+            {
+                await SendHelper(new SystemMessage($"{user.Username} left the chat"));
+            }
         }
 
         private async Task SendHelper(Message msg)
         {
             messageHistory.Add(msg);
             await Clients.All.SendAsync("ReceiveMessage", msg);
+        }
+
+        private User? GetCurrentUser()
+        {
+            if (chatConnections.ContainsKey(Context.ConnectionId))
+            {
+                return chatConnections[Context.ConnectionId];
+            }
+            else
+            {
+                return null;
+            }
         }
     }
 }

@@ -1,78 +1,40 @@
 ﻿@page "/"
 @using Microsoft.AspNetCore.SignalR.Client
-@using ChatApplication.Shared
 @inject NavigationManager NavigationManager
+@inject Blazored.LocalStorage.ISyncLocalStorageService localStorage
 @implements IAsyncDisposable
-
-<PageTitle>Index</PageTitle>
-
-<div class="form-group">
-    <label>
-        Name:
-        <input @bind="name" />
-    </label>
-</div>
-<div class="form-group">
-    <label>
-        Surname:
-        <input @bind="surname" />
-    </label>
-</div>
-<div class="form-group">
-    <label>
-        Username:
-        <input @bind="username" />
-    </label>
-</div>
-<button @onclick="Send" disabled="@(!IsConnected)">Send</button>
-
-<hr>
-
-<ul id="messagesList">
-    @foreach (var message in messages)
-    {
-        <li>@message</li>
-    }
-</ul>
 
 @code {
     private HubConnection? hubConnection;
-    private List<Message> messages = new List<Message>();
-    private string? name;
-    private string? surname;
-    private string? username;
 
     protected override async Task OnInitializedAsync()
     {
+        NavigationManager.NavigateTo("/register");
         hubConnection = new HubConnectionBuilder()
-            .WithUrl(new Uri("http://localhost:5158/chatHub"))
+            .WithUrl(new Uri("https://localhost:7132/chatHub"))
             .Build();
 
-        hubConnection.On<string, List<Message>>("ReadyToJoin", (userId, messages) =>
-        {
-            //this.name = name;
-            this.messages = messages;
-        });
-        hubConnection.On<string, string>("ReceiveMessage", (user, message) =>
-        {
-            var encodedMsg = $"{user}: {message}";
-            //messages.Add(encodedMsg);
-            StateHasChanged();
-        });
-
         await hubConnection.StartAsync();
-    }
 
-    private async Task Send()
-    {
-        if (hubConnection is not null)
+        var userID = localStorage.GetItem<string>("userID");
+        if (userID != null)
         {
-            await hubConnection.SendAsync("Register", name, surname, username);
+            if (await hubConnection.InvokeAsync<bool>("CheckID", userID))
+            {
+                NavigationManager.NavigateTo("/chat");
+            }
+            else
+            {
+                Console.WriteLine("UserID is not valid");
+                localStorage.RemoveItem("userID");
+                NavigationManager.NavigateTo("/register");
+            }
+        }
+        else
+        {
+            NavigationManager.NavigateTo("/register");
         }
     }
-
-    public bool IsConnected =>
-        hubConnection?.State == HubConnectionState.Connected;
 
     public async ValueTask DisposeAsync()
     {
