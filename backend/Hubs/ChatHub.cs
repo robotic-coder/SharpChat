@@ -9,6 +9,7 @@ namespace backend.Hubs
 
         public async Task Register(string name, string surname, string username)
         {
+            Console.WriteLine($"Registering user {username}");
             var user = new User(name, surname, username);
             users.Add(user.Id, user);
             await Clients.Caller.SendAsync("ReadyToJoin", user.Id, messageHistory);
