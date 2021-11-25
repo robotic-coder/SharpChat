@@ -7,29 +7,28 @@
 
 <PageTitle>Chat</PageTitle>
 
+<div id="messagesList">
+    @foreach(var message in oldMessages)
+    {
+        <MessageComponent MessageData="@message" CurrentUserID="@userID"></MessageComponent>
+    }
+    @foreach (var message in newMessages)
+    {
+        <MessageComponent MessageData="@message" CurrentUserID="@userID"></MessageComponent>
+    }
+</div>
+
+<div class="form-group">
+    <label>
+        <input @bind="text" placeholder="Enter a message"/>
+    </label>
+    <button @onclick="DoSend" disabled="@(!IsReady)">Send</button>
+</div>
+
 <div class="container">
     <div class="row">
         <div class="col-4">
-            <div class="form-group">
-                <label>
-                    Enter a message:
-                    <input @bind="text" />
-                </label>
-            </div>
-            <button @onclick="DoSend" disabled="@(!IsReady)">Send</button>
-
-            <hr>
-
-            <ul id="messagesList">
-                @foreach (var message in oldMessages)
-                {
-                    <li>@message.SenderName: @message.Text</li>
-                }
-                @foreach (var message in newMessages)
-                {
-                    <li>@message.SenderName: @message.Text</li>
-                }
-            </ul>
+            
         </div>
         <div class="col-4"></div>
         <div class="col-4"></div>
@@ -72,21 +71,26 @@
 
         await hubConnection.StartAsync();
 
-        this.userID = localStorage.GetItem<string>("loginKey");
-        if (this.userID != null)
+        var loginKey = localStorage.GetItem<string>("loginKey");
+        if (loginKey != null)
         {
-			var messageHistory = await hubConnection.InvokeAsync<List<Message>?>("JoinChat", this.userID);
-			if (messageHistory != null)
+			var joinResult = await hubConnection.InvokeAsync<Tuple<string, List<Message>>?>("JoinChat", loginKey);
+			if (joinResult != null)
 			{	
-				this.oldMessages = messageHistory;
+                this.userID = joinResult.Item1;
+				this.oldMessages = joinResult.Item2;
 				this.newMessages = this.newMessages.FindAll(m => !this.oldMessages.Exists(m2 => m2.Id == m.Id));
 				this.oldMessagesLoaded = DateTime.Now;
 				StateHasChanged();
 			}
+            else
+            {
+                NavigationManager.NavigateTo("/register");
+            }
         }
 		else
 		{
-			NavigationManager.NavigateTo("/");
+			NavigationManager.NavigateTo("/register");
 		}
     }
 

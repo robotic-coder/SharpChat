@@ -1,0 +1,17 @@
+@using ChatApplication.Shared﻿
+
+@if (MessageData != null)
+{
+	var color = "rgb"+MessageData.Color;
+	<div id="messageBlock" class="@MessageClass" style="background-color: @color">
+		<div>@MessageData.SenderName: @MessageData.Text</div>
+	</div>
+}
+
+@code {
+    // Demonstrates how a parent component can supply parameters
+    [Parameter] public Message? MessageData { get; set; }
+	[Parameter] public string? CurrentUserID { get; set; }
+
+    private string MessageClass => (this.MessageData != null && this.MessageData.IsFromSender(this.CurrentUserID)) ? "right" : "left";
+}

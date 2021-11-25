@@ -1,0 +1,15 @@
+#messageBlock {
+	background-color: red;
+	display: block;
+	padding: 5px;
+	border-radius: 10px;
+	margin-bottom: 10px;
+}
+
+.left {
+	margin-right: 10%;
+}
+
+.right {
+	margin-left: 10%;
+}
