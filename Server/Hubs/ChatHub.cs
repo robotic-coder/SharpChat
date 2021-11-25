@@ -21,12 +21,13 @@ namespace ChatApplication.Server.Hubs
             return users.ContainsKey(loginKey);
         }
 
-        public async Task<List<Message>?> JoinChat(string loginKey)
+        public async Task<Tuple<string, List<Message>>?> JoinChat(string loginKey)
         {   
             if (users.ContainsKey(loginKey)) {
-                chatConnections.Add(Context.ConnectionId, users[loginKey]);
-                await SendHelper(new SystemMessage($"{users[loginKey].Username} joined the chat"));
-                return messageHistory;
+                var user = users[loginKey];
+                chatConnections.Add(Context.ConnectionId, user);
+                await SendHelper(new SystemMessage($"{user.Username} joined the chat"));
+                return new Tuple<string, List<Message>>(user.Id, messageHistory);
             }
             else
             {

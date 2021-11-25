@@ -2,16 +2,22 @@ namespace ChatApplication.Shared
 {
     public class Message
     {
-		public string? Id { get; set; }
-		public string? SenderName { get; set; }
+		public string Id { get; set; }
+		public string SenderName { get; set; }
 		public string? SenderId { get; set; }
-		public string? Text { get; set; }
-		public Tuple<int, int, int>? Color { get; set; }
-		public DateTime? Timestamp { get; set; }
+		public string Text { get; set; }
+		public Tuple<int, int, int> Color { get; set; }
+		public DateTime Timestamp { get; set; }
 
 		public Message()
 		{
-			// Empty constructor for serialization
+			// For serialization. Do not use.
+			this.Id = "";
+			this.SenderName = "";
+			this.SenderId = null;
+			this.Text = "";
+			this.Color = new Tuple<int, int, int>(0, 0, 0);
+			this.Timestamp = DateTime.Now;
 		}
 		
         protected Message(string? senderID, string senderName, string text, Tuple<int, int, int> color)
@@ -24,7 +30,7 @@ namespace ChatApplication.Shared
 			this.Timestamp = DateTime.Now;
 		}
 
-		public bool IsFromSender(string senderID)
+		public bool IsFromSender(string? senderID)
 		{
 			return this.SenderId == senderID;
 		}
