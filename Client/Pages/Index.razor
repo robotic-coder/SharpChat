@@ -16,17 +16,16 @@
 
         await hubConnection.StartAsync();
 
-        var userID = localStorage.GetItem<string>("userID");
-        if (userID != null)
+        var loginKey = localStorage.GetItem<string>("loginKey");
+        if (loginKey != null)
         {
-            if (await hubConnection.InvokeAsync<bool>("CheckID", userID))
+            if (await hubConnection.InvokeAsync<bool>("CheckKey", loginKey))
             {
                 NavigationManager.NavigateTo("/chat");
             }
             else
             {
-                Console.WriteLine("UserID is not valid");
-                localStorage.RemoveItem("userID");
+                localStorage.RemoveItem("loginKey");
                 NavigationManager.NavigateTo("/register");
             }
         }

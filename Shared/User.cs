@@ -3,6 +3,7 @@ namespace ChatApplication.Shared
     public class User
     {
 		public string Id { get; } = Guid.NewGuid().ToString();
+		public string LoginKey { get; } = Guid.NewGuid().ToString();
 		public string Name { get; }
 		public string Surname { get; }
 		public string Username { get; }
@@ -10,9 +11,9 @@ namespace ChatApplication.Shared
 		
         public User(string name, string surname, string username)
 		{
-			Name = name;
-			Surname = surname;
-			Username = username;
+			this.Name = name;
+			this.Surname = surname;
+			this.Username = username;
 		}
     }
 }

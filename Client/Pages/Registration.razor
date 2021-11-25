@@ -34,7 +34,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-		if (localStorage.ContainKey("userID"))
+		if (localStorage.ContainKey("loginKey"))
 		{
 			NavigationManager.NavigateTo("/");
 		}
@@ -52,8 +52,8 @@
     {
         if (hubConnection is not null)
         {
-            var userID = await hubConnection.InvokeAsync<string>("Register", name, surname, username);
-			localStorage.SetItem("userID", userID);
+            var loginKey = await hubConnection.InvokeAsync<string>("Register", name, surname, username);
+			localStorage.SetItem("loginKey", loginKey);
 			NavigationManager.NavigateTo("/chat");
         }
     }

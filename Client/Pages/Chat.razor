@@ -5,28 +5,36 @@
 @inject Blazored.LocalStorage.ISyncLocalStorageService localStorage
 @implements IAsyncDisposable
 
-<PageTitle>Registration</PageTitle>
+<PageTitle>Chat</PageTitle>
 
-<div class="form-group">
-    <label>
-        Enter a message:
-        <input @bind="text" />
-    </label>
+<div class="container">
+    <div class="row">
+        <div class="col-4">
+            <div class="form-group">
+                <label>
+                    Enter a message:
+                    <input @bind="text" />
+                </label>
+            </div>
+            <button @onclick="DoSend" disabled="@(!IsReady)">Send</button>
+
+            <hr>
+
+            <ul id="messagesList">
+                @foreach (var message in oldMessages)
+                {
+                    <li>@message.SenderName: @message.Text</li>
+                }
+                @foreach (var message in newMessages)
+                {
+                    <li>@message.SenderName: @message.Text</li>
+                }
+            </ul>
+        </div>
+        <div class="col-4"></div>
+        <div class="col-4"></div>
+    </div>
 </div>
-<button @onclick="DoSend" disabled="@(!IsReady)">Send</button>
-
-<hr>
-
-<ul id="messagesList">
-	@foreach (var message in oldMessages)
-    {
-        <li>@message.Sender: @message.Text</li>
-    }
-    @foreach (var message in newMessages)
-    {
-        <li>@message.Sender: @message.Text</li>
-    }
-</ul>
 
 @code {
     private HubConnection? hubConnection;
@@ -56,15 +64,15 @@
 			}
         });
 
-		hubConnection.On("InvalidID", () =>
+		hubConnection.On("InvalidKey", () =>
         {
-            localStorage.RemoveItem("userID");
+            localStorage.RemoveItem("loginKey");
             NavigationManager.NavigateTo("/register");
         });
 
         await hubConnection.StartAsync();
 
-        this.userID = localStorage.GetItem<string>("userID");
+        this.userID = localStorage.GetItem<string>("loginKey");
         if (this.userID != null)
         {
 			var messageHistory = await hubConnection.InvokeAsync<List<Message>?>("JoinChat", this.userID);

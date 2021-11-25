@@ -12,25 +12,25 @@ namespace ChatApplication.Server.Hubs
         public string Register(string name, string surname, string username)
         {
             var user = new User(name, surname, username);
-            users.Add(user.Id, user);
-            return user.Id;
+            users.Add(user.LoginKey, user);
+            return user.LoginKey;
         }
 
-        public bool CheckID(string userID)
+        public bool CheckKey(string loginKey)
         {
-            return users.ContainsKey(userID);
+            return users.ContainsKey(loginKey);
         }
 
-        public async Task<List<Message>?> JoinChat(string userID)
+        public async Task<List<Message>?> JoinChat(string loginKey)
         {   
-            if (users.ContainsKey(userID)) {
-                chatConnections.Add(Context.ConnectionId, users[userID]);
-                await SendHelper(new SystemMessage($"{users[userID].Username} joined the chat"));
+            if (users.ContainsKey(loginKey)) {
+                chatConnections.Add(Context.ConnectionId, users[loginKey]);
+                await SendHelper(new SystemMessage($"{users[loginKey].Username} joined the chat"));
                 return messageHistory;
             }
             else
             {
-                await Clients.Caller.SendAsync("InvalidID");
+                await Clients.Caller.SendAsync("InvalidKey");
                 return null;
             }
         }
@@ -44,7 +44,7 @@ namespace ChatApplication.Server.Hubs
             }
             else
             {
-                await Clients.Caller.SendAsync("InvalidID");
+                await Clients.Caller.SendAsync("InvalidKey");
             }
         }
 
