@@ -19,5 +19,5 @@
     private string SideClass => (this.MessageData?.Sender?.Id == this.CurrentUserID) ? "right" : "left";
 	private string SenderClass => (this.MessageData?.Sender != null) ? "user" : "system";
 	private string BackgroundColor => (this.MessageData?.Sender != null) ? "background-color: rgb"+this.MessageData.Sender.Color.ToString() : "";
-	private string SenderName => this.MessageData?.Sender?.Username ?? "System";
+	private string SenderName => this.MessageData?.Sender?.CombinedName ?? "";
 }

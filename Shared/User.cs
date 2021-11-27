@@ -28,5 +28,7 @@ namespace ChatApplication.Shared
 			Random rng = new Random();
 			this.Color = new Tuple<int, int, int>(rng.Next(128, 255), rng.Next(128, 255), rng.Next(128, 255)); // Restrict to light colours
 		}
+
+		public string CombinedName => $"{this.Name} {this.Surname} ({this.Username})";
 	}
 }

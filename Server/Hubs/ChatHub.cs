@@ -27,7 +27,7 @@ namespace ChatApplication.Server.Hubs
             if (users.ContainsKey(loginKey)) {
                 var user = users[loginKey];
                 chatConnections.Add(Context.ConnectionId, user);
-                await SendHelper(new SystemMessage($"{user.Name} {user.Surname} ({user.Username}) has entered the chat"));
+                await SendHelper(new SystemMessage($"{user.CombinedName} has entered the chat"));
                 return new Tuple<string, List<Message>>(user.Id, messageHistory);
             }
             else
@@ -55,7 +55,7 @@ namespace ChatApplication.Server.Hubs
             var user = GetCurrentUser();
             if (user != null)
             {
-                await SendHelper(new SystemMessage($"{user.Name} {user.Surname} ({user.Username}) has left the chat"));
+                await SendHelper(new SystemMessage($"{user.CombinedName} has left the chat"));
             }
         }
 
