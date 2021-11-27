@@ -22,17 +22,7 @@
     <label>
         <input @bind="text" placeholder="Enter a message"/>
     </label>
-    <button @onclick="DoSend" disabled="@(!IsReady)">Send</button>
-</div>
-
-<div class="container">
-    <div class="row">
-        <div class="col-4">
-            
-        </div>
-        <div class="col-4"></div>
-        <div class="col-4"></div>
-    </div>
+    <button @onclick="DoSend">Send</button>
 </div>
 
 @code {
@@ -48,6 +38,15 @@
         hubConnection = new HubConnectionBuilder()
             .WithUrl(new Uri("https://localhost:7132/chatHub"))
             .Build();
+
+        hubConnection.Closed += async (error) =>
+        {
+            // Reconnects to the hub on disconnect
+            await hubConnection.StartAsync();
+
+            var loginKey = localStorage.GetItem<string>("loginKey");
+                var joinResult = await hubConnection.InvokeAsync<Tuple<string, List<Message>>?>("JoinChat", loginKey);
+        };
 
         hubConnection.On<Message>("ReceiveMessage", (message) =>
         {
@@ -65,7 +64,6 @@
 
 		hubConnection.On("InvalidKey", () =>
         {
-            localStorage.RemoveItem("loginKey");
             NavigationManager.NavigateTo("/register");
         });
 
@@ -101,8 +99,6 @@
             await hubConnection.SendAsync("SendMessage", this.text);
         }
     }
-
-    public bool IsReady => (hubConnection?.State == HubConnectionState.Connected);
 
     public async ValueTask DisposeAsync()
     {

@@ -9,12 +9,19 @@ namespace ChatApplication.Server.Hubs
         private static Dictionary<string, User> users = new Dictionary<string, User>();
         private static Dictionary<string, User> chatConnections = new Dictionary<string, User>();
 
-        public string Register(string name, string surname, string username)
+        public string? Register(string name, string surname, string username)
         {
-            var user = new User(name, surname, username);
-            var loginKey = Guid.NewGuid().ToString();
-            users.Add(loginKey, user);
-            return loginKey;
+            if (IsNullOrEmpty(name) || IsNullOrEmpty(username))
+            {
+                return null;
+            }
+            else
+            {
+                var user = new User(name, surname, username);
+                var loginKey = Guid.NewGuid().ToString();
+                users.Add(loginKey, user);
+                return loginKey;
+            }
         }
 
         public bool CheckKey(string loginKey)
@@ -27,7 +34,7 @@ namespace ChatApplication.Server.Hubs
             if (users.ContainsKey(loginKey)) {
                 var user = users[loginKey];
                 chatConnections.Add(Context.ConnectionId, user);
-                await SendHelper(new SystemMessage($"{user.CombinedName} has entered the chat"));
+                await SendHelper(new SystemMessage($"{user.Username} has entered the chat"));
                 return new Tuple<string, List<Message>>(user.Id, messageHistory);
             }
             else
@@ -55,7 +62,7 @@ namespace ChatApplication.Server.Hubs
             var user = GetCurrentUser();
             if (user != null)
             {
-                await SendHelper(new SystemMessage($"{user.CombinedName} has left the chat"));
+                await SendHelper(new SystemMessage($"{user.Username} has left the chat"));
             }
         }
 
@@ -65,16 +72,8 @@ namespace ChatApplication.Server.Hubs
             await Clients.All.SendAsync("ReceiveMessage", msg);
         }
 
-        private User? GetCurrentUser()
-        {
-            if (chatConnections.ContainsKey(Context.ConnectionId))
-            {
-                return chatConnections[Context.ConnectionId];
-            }
-            else
-            {
-                return null;
-            }
-        }
+        private User? GetCurrentUser() => (chatConnections.ContainsKey(Context.ConnectionId)) ? chatConnections[Context.ConnectionId] : null;
+
+        private bool IsNullOrEmpty(string? value) => (value == null || value == "");
     }
 }
