@@ -16,7 +16,7 @@ input {
 	min-width: 250px;
 }
 
-.container .no-padding {
+.container.no-padding {
 	padding-left: 0;
 	padding-right: 0;
 }

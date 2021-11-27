@@ -12,16 +12,16 @@
     {
         <MessageComponent MessageData="@message" CurrentUserID="@userID"></MessageComponent>
     }
+    <hr>
     @foreach (var message in newMessages)
     {
         <MessageComponent MessageData="@message" CurrentUserID="@userID"></MessageComponent>
     }
 </div>
 
-<div class="form-group">
-    <label>
-        <input @bind="text" placeholder="Enter a message"/>
-    </label>
+<div id="footer">
+    <button @onclick="EmptyText">X</button>
+    <input @bind="text" placeholder="Enter a message"/>
     <button @onclick="DoSend">Send</button>
 </div>
 
@@ -98,6 +98,11 @@
         {
             await hubConnection.SendAsync("SendMessage", this.text);
         }
+    }
+
+    private void EmptyText()
+    {
+        this.text = "";
     }
 
     public async ValueTask DisposeAsync()
