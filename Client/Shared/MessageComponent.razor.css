@@ -1,5 +1,4 @@
 #messageBlock {
-	background-color: red;
 	display: block;
 	padding: 5px;
 	border-radius: 10px;
@@ -12,4 +11,22 @@
 
 .right {
 	margin-left: 10%;
+}
+
+.system {
+	color: white;
+	background-color: black;
+}
+
+.user {
+	color: black;
+	/* Background color will be set dynamically */
+}
+
+#messageContent {
+
+}
+
+#messageFooter {
+	text-align: right;
 }

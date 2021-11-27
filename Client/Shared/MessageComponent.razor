@@ -2,16 +2,22 @@
 
 @if (MessageData != null)
 {
-	var color = "rgb"+MessageData.Color;
-	<div id="messageBlock" class="@MessageClass" style="background-color: @color">
-		<div>@MessageData.SenderName: @MessageData.Text</div>
+	<div id="messageBlock" class="@SideClass @SenderClass" style="@BackgroundColor">
+		<div id="messageContent">
+			@MessageData.Text
+		</div>
+		<div id="messageFooter">
+			@SenderName    @MessageData.Timestamp.ToString("HH:mm")
+		</div>
 	</div>
 }
 
 @code {
-    // Demonstrates how a parent component can supply parameters
     [Parameter] public Message? MessageData { get; set; }
 	[Parameter] public string? CurrentUserID { get; set; }
 
-    private string MessageClass => (this.MessageData != null && this.MessageData.IsFromSender(this.CurrentUserID)) ? "right" : "left";
+    private string SideClass => (this.MessageData?.Sender?.Id == this.CurrentUserID) ? "right" : "left";
+	private string SenderClass => (this.MessageData?.Sender != null) ? "user" : "system";
+	private string BackgroundColor => (this.MessageData?.Sender != null) ? "background-color: rgb"+this.MessageData.Sender.Color.ToString() : "";
+	private string SenderName => this.MessageData?.Sender?.Username ?? "System";
 }

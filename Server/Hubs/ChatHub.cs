@@ -12,8 +12,9 @@ namespace ChatApplication.Server.Hubs
         public string Register(string name, string surname, string username)
         {
             var user = new User(name, surname, username);
-            users.Add(user.LoginKey, user);
-            return user.LoginKey;
+            var loginKey = Guid.NewGuid().ToString();
+            users.Add(loginKey, user);
+            return loginKey;
         }
 
         public bool CheckKey(string loginKey)
@@ -26,7 +27,7 @@ namespace ChatApplication.Server.Hubs
             if (users.ContainsKey(loginKey)) {
                 var user = users[loginKey];
                 chatConnections.Add(Context.ConnectionId, user);
-                await SendHelper(new SystemMessage($"{user.Username} joined the chat"));
+                await SendHelper(new SystemMessage($"{user.Name} {user.Surname} ({user.Username}) has entered the chat"));
                 return new Tuple<string, List<Message>>(user.Id, messageHistory);
             }
             else
@@ -54,7 +55,7 @@ namespace ChatApplication.Server.Hubs
             var user = GetCurrentUser();
             if (user != null)
             {
-                await SendHelper(new SystemMessage($"{user.Username} left the chat"));
+                await SendHelper(new SystemMessage($"{user.Name} {user.Surname} ({user.Username}) has left the chat"));
             }
         }
 
