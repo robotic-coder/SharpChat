@@ -8,24 +8,26 @@
 
 <PageTitle>Chat</PageTitle>
 
-<div id="messagesList">
-    @foreach(var message in oldMessages)
-    {
-        var sideClass = (message.Sender?.Id == this.userID) ? "right" : "left";
-        <div class="message @sideClass">
-            <MessageComponent MessageData="@message"></MessageComponent>
+<div id="messagesScroll">
+    <div id="messagesList">
+        @foreach(var message in oldMessages)
+        {
+            var sideClass = (message.Sender?.Id == this.userID) ? "right" : "left";
+            <div class="message @sideClass">
+                <MessageComponent MessageData="@message"></MessageComponent>
+            </div>
+        }
+        <div id="separator" hidden="@HideSeparator">
+            <hr/><span>New messages</span><hr/>
         </div>
-    }
-    <div id="separator" hidden="@HideSeparator">
-        <hr/><span>New messages</span><hr/>
+        @foreach (var message in newMessages)
+        {   
+            var sideClass = (message.Sender?.Id == this.userID) ? "right" : "left";
+            <div class="message @sideClass">
+                <MessageComponent MessageData="@message"></MessageComponent>
+            </div>
+        }
     </div>
-    @foreach (var message in newMessages)
-    {   
-        var sideClass = (message.Sender?.Id == this.userID) ? "right" : "left";
-        <div class="message @sideClass">
-            <MessageComponent MessageData="@message"></MessageComponent>
-        </div>
-    }
     <div id="anchor"></div>
 </div>
 
@@ -78,13 +80,8 @@
     {
         if (firstRender)
         {
-            await ScrollToBottom();
+            await JsRuntime.InvokeVoidAsync("ScrollToBottom"); // in index.html
         }
-    }
-
-    private async Task ScrollToBottom()
-    {
-        await JsRuntime.InvokeVoidAsync("ScrollToBottom"); // in index.html
     }
 
     private async Task ConnectAndLoad()
@@ -116,7 +113,6 @@
 				this.oldMessages = joinResult.Item2.FindAll(m => !this.newMessages.Exists(m2 => m2.Id == m.Id)); // Removes old messages that were already received through ReceivedMessage
                 this.oldMessagesLoaded = DateTime.Now;
                 StateHasChanged();
-                await ScrollToBottom();
 			}
             else
             {

@@ -1,4 +1,4 @@
-#messagesList {
+#messagesScroll {
 	position: relative;
 	height: calc(100vh - 80px);
 	overflow-y: scroll;
@@ -6,12 +6,16 @@
   	scrollbar-width: none;
 }
 
-#messagesList::-webkit-scrollbar {
+#messagesScroll::-webkit-scrollbar {
 	display: none;
 }
 
-#messagesList * {
+#messagesScroll * {
 	overflow-anchor: none;
+}
+
+#messagesList {
+	min-height: 100%;
 }
 
 .message.left {
@@ -20,11 +24,6 @@
 
 .message.right {
 	margin-left: 10%;
-}
-
-#anchor {
-	overflow-anchor: auto;
-	height: 1px;
 }
 
 #separator {
@@ -37,6 +36,11 @@
 }
 #separator span {
 	margin: 0 10px;
+}
+
+#anchor {
+	overflow-anchor: auto;
+	min-height: 1px;
 }
 
 #footer {
