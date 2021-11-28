@@ -1,4 +1,4 @@
-#messagesWrapper {
+#messagesList {
 	position: relative;
 	height: calc(100vh - 80px);
 	overflow-y: scroll;
@@ -6,20 +6,12 @@
   	scrollbar-width: none;
 }
 
-#messagesWrapper * {
-	overflow-anchor: none;
-}
-
-#messagesWrapper::-webkit-scrollbar {
+#messagesList::-webkit-scrollbar {
 	display: none;
 }
 
-#messagesList {
-	min-height: calc(100vh - 80px);
-	align-items: end;
-}
-
-.message {
+#messagesList * {
+	overflow-anchor: none;
 }
 
 .message.left {

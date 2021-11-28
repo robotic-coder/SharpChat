@@ -8,7 +8,6 @@
 
 <PageTitle>Chat</PageTitle>
 
-<div id="messagesWrapper">
 <div id="messagesList">
     @foreach(var message in oldMessages)
     {
@@ -28,7 +27,6 @@
         </div>
     }
     <div id="anchor"></div>
-</div>
 </div>
 
 <div id="footer">
@@ -80,8 +78,13 @@
     {
         if (firstRender)
         {
-            await JsRuntime.InvokeVoidAsync("ScrollToBottom"); // in index.html
+            await ScrollToBottom();
         }
+    }
+
+    private async Task ScrollToBottom()
+    {
+        await JsRuntime.InvokeVoidAsync("ScrollToBottom"); // in index.html
     }
 
     private async Task ConnectAndLoad()
@@ -112,7 +115,8 @@
                 this.userID = joinResult.Item1;
 				this.oldMessages = joinResult.Item2.FindAll(m => !this.newMessages.Exists(m2 => m2.Id == m.Id)); // Removes old messages that were already received through ReceivedMessage
                 this.oldMessagesLoaded = DateTime.Now;
-				StateHasChanged();
+                StateHasChanged();
+                await ScrollToBottom();
 			}
             else
             {
