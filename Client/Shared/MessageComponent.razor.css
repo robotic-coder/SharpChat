@@ -1,8 +1,9 @@
 #messageBlock {
-	display: block;
 	padding: 5px;
 	border-radius: 10px;
 	margin-bottom: 10px;
+	display: flex;
+    flex-direction: column-reverse;
 }
 
 .system {

@@ -3,11 +3,13 @@
 @if (MessageData != null)
 {
 	<div id="messageBlock" class="@SenderClass" style="@BackgroundColor">
-		<div id="messageContent">
-			@MessageData.Text
-		</div>
+		<!-- Put metadata first in HTML - this will help with accessibility (e.g. screen readers) -->
+		<!-- It will be reversed in CSS so that the metadata is at the bottom as per the given wireframes -->
 		<div id="messageFooter">
 			@SenderName    @MessageData.Timestamp.ToString("HH:mm")
+		</div>
+		<div id="messageContent">
+			@MessageData.Text
 		</div>
 	</div>
 }
