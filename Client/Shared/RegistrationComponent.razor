@@ -1,10 +1,10 @@
 <div class="container no-padding">
 	<div class="row">
-		<div class="col input-container">
+		<div class="col-md input-container">
 			<input id="name" class="@NameClass" placeholder="Name" @onblur="CheckInput" @bind="name"/>
 			<br><label for="name" class="errorMsg">@NameErrorMsg</label>
 		</div>
-		<div class="col input-container">
+		<div class="col-md input-container">
 			<input id="surname" placeholder="Surname" @bind="surname"/>
 			<br><label for="surname" class="errorMsg"></label>
 		</div>
@@ -12,7 +12,7 @@
 </div>
 
 <div class="input-container">
-	<input id="username" class="@UsernameClass" placeholder="Username" @onblur="CheckInput" @bind="username"/>
+	<input id="username" class="@UsernameClass" placeholder="Username" @onblur="CheckInput" @bind="username" @bind:event="oninput" @onkeydown="@KeyPressed"/>
 	<br><label for="username" class="errorMsg">@UsernameErrorMsg</label>
 </div>
 
@@ -49,6 +49,14 @@
 			}
 		}
     }
+
+	private async Task KeyPressed(KeyboardEventArgs e)
+	{
+		if (e.Code == "Enter")
+		{
+			await DoRegister();
+		}
+	}
 
     private bool StateIsInvalid(string? value) => (buttonClickedBefore && (value == null || value == ""));
     private string NameClass => StateIsInvalid(name) ? "invalid" : "";
