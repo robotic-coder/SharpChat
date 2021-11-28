@@ -46,14 +46,21 @@ namespace ChatApplication.Server.Hubs
 
         public async Task SendMessage(string message)
         {
-            var user = GetCurrentUser();
-            if (user != null)
+            if (IsNullOrEmpty(message))
             {
-                await SendHelper(new UserMessage(user, message));
+                return;
             }
             else
             {
-                await Clients.Caller.SendAsync("InvalidKey");
+                var user = GetCurrentUser();
+                if (user != null)
+                {
+                    await SendHelper(new UserMessage(user, message));
+                }
+                else
+                {
+                    await Clients.Caller.SendAsync("InvalidKey");
+                }
             }
         }
 
