@@ -20,3 +20,4 @@ dotnet run
 cd Client
 dotnet run
 ```
+4. Open the web UI at https://localhost:7045.
