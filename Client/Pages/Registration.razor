@@ -43,7 +43,9 @@
 
 
 @code {
-    private HubConnection? hubConnection;
+    private HubConnection hubConnection = new HubConnectionBuilder()
+        .WithUrl(new Uri("https://localhost:7132/chatHub"))
+        .Build();
     private string? name;
     private string? surname;
     private string? username;
@@ -53,10 +55,6 @@
     protected override async Task OnInitializedAsync()
     {
         localStorage.RemoveItem("loginKey");
-
-		hubConnection = new HubConnectionBuilder()
-            .WithUrl(new Uri("https://localhost:7132/chatHub"))
-            .Build();
 
         hubConnection.Closed += async (error) =>
         {

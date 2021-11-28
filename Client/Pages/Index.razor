@@ -5,14 +5,13 @@
 @implements IAsyncDisposable
 
 @code {
-    private HubConnection? hubConnection;
+    private HubConnection hubConnection = new HubConnectionBuilder()
+        .WithUrl(new Uri("https://localhost:7132/chatHub"))
+        .Build();
 
     protected override async Task OnInitializedAsync()
     {
         NavigationManager.NavigateTo("/register");
-        hubConnection = new HubConnectionBuilder()
-            .WithUrl(new Uri("https://localhost:7132/chatHub"))
-            .Build();
 
         await hubConnection.StartAsync();
 
