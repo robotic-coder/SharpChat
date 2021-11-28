@@ -1,7 +1,43 @@
-#messagesList {
+#messagesWrapper {
 	position: relative;
 	height: calc(100vh - 80px);
 	overflow-y: scroll;
+	-ms-overflow-style: none;
+  	scrollbar-width: none;
+}
+
+#messagesWrapper * {
+	overflow-anchor: none;
+}
+
+#messagesWrapper::-webkit-scrollbar {
+	display: none;
+}
+
+#messagesList {
+	min-height: calc(100vh - 80px);
+	align-items: end;
+}
+
+.message {
+}
+
+.message.left {
+	margin-right: 10%;
+}
+
+.message.right {
+	margin-left: 10%;
+}
+
+#anchor {
+	overflow-anchor: auto;
+	height: 1px;
+}
+
+#separator {
+	margin-bottom: 10px;
+	text-align: center;
 }
 
 #footer {
@@ -12,6 +48,12 @@
 	height: 50px;
 }
 
-#footer input {
+#footer .middle {
 	flex: 1;
+}
+
+#footer .disconnected {
+	color: red;
+	text-align: center;
+	line-height: 50px;
 }

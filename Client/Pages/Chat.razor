@@ -3,30 +3,45 @@
 @using ChatApplication.Shared
 @inject NavigationManager NavigationManager
 @inject Blazored.LocalStorage.ISyncLocalStorageService localStorage
+@inject IJSRuntime JsRuntime
 @implements IAsyncDisposable
 
 <PageTitle>Chat</PageTitle>
 
+<div id="messagesWrapper">
 <div id="messagesList">
     @foreach(var message in oldMessages)
     {
-        <MessageComponent MessageData="@message" CurrentUserID="@userID"></MessageComponent>
+        var sideClass = (message.Sender?.Id == this.userID) ? "right" : "left";
+        <div class="message @sideClass">
+            <MessageComponent MessageData="@message"></MessageComponent>
+        </div>
     }
-    <hr>
+    <div id="separator" hidden="@HideSeparator">
+        New messages
+    </div>
     @foreach (var message in newMessages)
-    {
-        <MessageComponent MessageData="@message" CurrentUserID="@userID"></MessageComponent>
+    {   
+        var sideClass = (message.Sender?.Id == this.userID) ? "right" : "left";
+        <div class="message @sideClass">
+            <MessageComponent MessageData="@message"></MessageComponent>
+        </div>
     }
+    <div id="anchor"></div>
+</div>
 </div>
 
 <div id="footer">
-    <button @onclick="EmptyText">X</button>
-    <input @bind="text" placeholder="Enter a message"/>
-    <button @onclick="DoSend">Send</button>
+    <button @onclick="RemoveText" disabled="@NoTextPresent">X</button>
+    <input class="middle" placeholder="Enter a message" @bind="text" @bind:event="oninput" @onkeydown="@KeyPressed" hidden="@IsDisconnected"/>
+    <div class="middle disconnected" hidden="@IsConnected">Disconnected from server</div>
+    <button @onclick="DoSend" disabled="@SendButtonDisabled">Send</button>
 </div>
 
 @code {
-    private HubConnection? hubConnection;
+    private HubConnection hubConnection = new HubConnectionBuilder()
+        .WithUrl(new Uri("https://localhost:7132/chatHub"))
+        .Build();
     private List<Message> oldMessages = new List<Message>();
 	private DateTime? oldMessagesLoaded;
     private List<Message> newMessages = new List<Message>();
@@ -35,31 +50,22 @@
 
     protected override async Task OnInitializedAsync()
     {
-        hubConnection = new HubConnectionBuilder()
-            .WithUrl(new Uri("https://localhost:7132/chatHub"))
-            .Build();
-
         hubConnection.Closed += async (error) =>
         {
             // Reconnects to the hub on disconnect
-            await hubConnection.StartAsync();
-
-            var loginKey = localStorage.GetItem<string>("loginKey");
-                var joinResult = await hubConnection.InvokeAsync<Tuple<string, List<Message>>?>("JoinChat", loginKey);
+            await ConnectAndLoad();
         };
 
         hubConnection.On<Message>("ReceiveMessage", (message) =>
         {
-			if (this.oldMessagesLoaded == null || this.oldMessagesLoaded < message.Timestamp)
+            this.newMessages.Add(message);
+            if (this.oldMessagesLoaded == null || this.oldMessagesLoaded > message.Timestamp)
 			{
-				// Old messages have not loaded yet, so add this to the list in case it is not in history, or
-				// Message was received by the server after old messages were loaded, so it has to be new
-				this.newMessages.Add(message);
+				// Message arrived after loading old messages, but it was already in the history
+                // Remove it from the history
+				this.oldMessages = this.oldMessages.FindAll(m => !this.newMessages.Exists(m2 => m2.Id == m.Id));
 			}
-			if (this.oldMessagesLoaded != null) // Don't show that messages have been received when we don't have history yet
-			{
-				StateHasChanged();
-			}
+            StateHasChanged();
         });
 
 		hubConnection.On("InvalidKey", () =>
@@ -67,18 +73,45 @@
             NavigationManager.NavigateTo("/register");
         });
 
-        await hubConnection.StartAsync();
+        await ConnectAndLoad();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JsRuntime.InvokeVoidAsync("ScrollToBottom"); // in index.html
+        }
+    }
+
+    private async Task ConnectAndLoad()
+    {
+        while (hubConnection.State != HubConnectionState.Connected)
+        {
+            try
+            {
+                StateHasChanged();
+                await hubConnection.StartAsync();
+            }
+            catch (Exception)
+            {
+                await Task.Delay(1000);
+            }
+        }
+
+        this.oldMessages = new List<Message>();
+        this.oldMessagesLoaded = null;
+        this.newMessages = new List<Message>();
 
         var loginKey = localStorage.GetItem<string>("loginKey");
         if (loginKey != null)
         {
-			var joinResult = await hubConnection.InvokeAsync<Tuple<string, List<Message>>?>("JoinChat", loginKey);
+			var joinResult = await this.hubConnection.InvokeAsync<Tuple<string, List<Message>>?>("JoinChat", loginKey);
 			if (joinResult != null)
 			{	
                 this.userID = joinResult.Item1;
-				this.oldMessages = joinResult.Item2;
-				this.newMessages = this.newMessages.FindAll(m => !this.oldMessages.Exists(m2 => m2.Id == m.Id));
-				this.oldMessagesLoaded = DateTime.Now;
+				this.oldMessages = joinResult.Item2.FindAll(m => !this.newMessages.Exists(m2 => m2.Id == m.Id)); // Removes old messages that were already received through ReceivedMessage
+                this.oldMessagesLoaded = DateTime.Now;
 				StateHasChanged();
 			}
             else
@@ -94,15 +127,35 @@
 
     private async Task DoSend()
     {
-        if (hubConnection is not null)
-        {
-            await hubConnection.SendAsync("SendMessage", this.text);
-        }
+        await hubConnection.SendAsync("SendMessage", this.text);
+        RemoveText();
     }
 
-    private void EmptyText()
+    private void RemoveText()
     {
         this.text = "";
+    }
+
+    private bool NoTextPresent => this.text == null || this.text == "";
+
+    private bool HideSeparator => this.oldMessages.Count == 0;
+
+    private bool IsConnected => hubConnection.State == HubConnectionState.Connected;
+
+    private bool IsDisconnected => !IsConnected;
+
+    private bool SendButtonDisabled => NoTextPresent || IsDisconnected;
+
+    private async Task KeyPressed(KeyboardEventArgs e)
+    {
+        if (this.text != null && this.text.Length <= 1)
+        {
+            StateHasChanged(); // Checks whether we can send, when there are 0 or 1 characters
+        }
+        if (!this.NoTextPresent && this.IsConnected && (e.Code == "Enter" || e.Code == "NumpadEnter"))
+        {
+            await DoSend();
+        }
     }
 
     public async ValueTask DisposeAsync()
