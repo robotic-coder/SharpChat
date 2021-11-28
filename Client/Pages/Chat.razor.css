@@ -1,0 +1,62 @@
+#messagesScroll {
+	position: relative;
+	height: calc(100vh - 80px);
+	overflow-y: scroll;
+	-ms-overflow-style: none;
+  	scrollbar-width: none;
+}
+
+#messagesScroll::-webkit-scrollbar {
+	display: none;
+}
+
+#messagesScroll * {
+	overflow-anchor: none;
+}
+
+#messagesList {
+	min-height: 100%;
+}
+
+.message.left {
+	margin-right: 10%;
+}
+
+.message.right {
+	margin-left: 10%;
+}
+
+#separator {
+	margin-bottom: 10px;
+	display: flex;
+    align-items: center;
+}
+#separator hr {
+	flex: 1;
+}
+#separator span {
+	margin: 0 10px;
+}
+
+#anchor {
+	overflow-anchor: auto;
+	min-height: 1px;
+}
+
+#footer {
+	position: relative;
+	display: flex;
+	bottom: 0;
+	width: 100%;
+	height: 50px;
+}
+
+#footer .middle {
+	flex: 1;
+}
+
+#footer .disconnected {
+	color: red;
+	text-align: center;
+	line-height: 50px;
+}

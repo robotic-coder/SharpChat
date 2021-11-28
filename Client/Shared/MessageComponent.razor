@@ -1,0 +1,22 @@
+@using ChatApplication.Shared﻿
+
+@if (MessageData != null)
+{
+	<div id="messageBlock" class="@SenderClass" style="@BackgroundColor">
+		<!-- Put metadata first in HTML - this will help with accessibility (e.g. screen readers) -->
+		<!-- It will be reversed in CSS so that the metadata is at the bottom as per the given wireframes -->
+		<div id="messageFooter">
+			@SenderName    @MessageData.Timestamp.ToString("HH:mm")
+		</div>
+		<div id="messageContent">
+			@MessageData.Text
+		</div>
+	</div>
+}
+
+@code {
+    [Parameter] public Message? MessageData { get; set; }
+	private string SenderClass => (this.MessageData?.Sender != null) ? "user" : "system";
+	private string BackgroundColor => (this.MessageData?.Sender != null) ? "background-color: rgb"+this.MessageData.Sender.Color.ToString() : "";
+	private string SenderName => this.MessageData?.Sender?.Username ?? "";
+}

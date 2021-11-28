@@ -3,33 +3,45 @@
 @using ChatApplication.Shared
 @inject NavigationManager NavigationManager
 @inject Blazored.LocalStorage.ISyncLocalStorageService localStorage
+@inject IJSRuntime JsRuntime
 @implements IAsyncDisposable
 
-<PageTitle>Registration</PageTitle>
+<PageTitle>Chat</PageTitle>
 
-<div class="form-group">
-    <label>
-        Enter a message:
-        <input @bind="text" />
-    </label>
+<div id="messagesScroll">
+    <div id="messagesList">
+        @foreach(var message in oldMessages)
+        {
+            var sideClass = (message.Sender?.Id == this.userID) ? "right" : "left";
+            <div class="message @sideClass">
+                <MessageComponent MessageData="@message"></MessageComponent>
+            </div>
+        }
+        <div id="separator" hidden="@HideSeparator">
+            <hr/><span>New messages</span><hr/>
+        </div>
+        @foreach (var message in newMessages)
+        {   
+            var sideClass = (message.Sender?.Id == this.userID) ? "right" : "left";
+            <div class="message @sideClass">
+                <MessageComponent MessageData="@message"></MessageComponent>
+            </div>
+        }
+    </div>
+    <div id="anchor"></div>
 </div>
-<button @onclick="DoSend" disabled="@(!IsReady)">Send</button>
 
-<hr>
-
-<ul id="messagesList">
-	@foreach (var message in oldMessages)
-    {
-        <li>@message.Sender: @message.Text</li>
-    }
-    @foreach (var message in newMessages)
-    {
-        <li>@message.Sender: @message.Text</li>
-    }
-</ul>
+<div id="footer">
+    <button @onclick="RemoveText" disabled="@NoTextPresent">X</button>
+    <input class="middle" placeholder="Enter a message" @bind="text" @bind:event="oninput" @onkeydown="@KeyPressed" hidden="@IsDisconnected"/>
+    <div class="middle disconnected" hidden="@IsConnected">Disconnected from server</div>
+    <button @onclick="DoSend" disabled="@SendButtonDisabled">Send</button>
+</div>
 
 @code {
-    private HubConnection? hubConnection;
+    private HubConnection hubConnection = new HubConnectionBuilder()
+        .WithUrl(new Uri("https://localhost:7132/chatHub"))
+        .Build();
     private List<Message> oldMessages = new List<Message>();
 	private DateTime? oldMessagesLoaded;
     private List<Message> newMessages = new List<Message>();
@@ -38,59 +50,113 @@
 
     protected override async Task OnInitializedAsync()
     {
-        hubConnection = new HubConnectionBuilder()
-            .WithUrl(new Uri("https://localhost:7132/chatHub"))
-            .Build();
+        hubConnection.Closed += async (error) =>
+        {
+            // Reconnects to the hub on disconnect
+            await ConnectAndLoad();
+        };
 
         hubConnection.On<Message>("ReceiveMessage", (message) =>
         {
-			if (this.oldMessagesLoaded == null || this.oldMessagesLoaded < message.Timestamp)
+            this.newMessages.Add(message);
+            if (this.oldMessagesLoaded == null || this.oldMessagesLoaded > message.Timestamp)
 			{
-				// Old messages have not loaded yet, so add this to the list in case it is not in history, or
-				// Message was received by the server after old messages were loaded, so it has to be new
-				this.newMessages.Add(message);
+				// Message arrived after loading old messages, but it was already in the history
+                // Remove it from the history
+				this.oldMessages = this.oldMessages.FindAll(m => !this.newMessages.Exists(m2 => m2.Id == m.Id));
 			}
-			if (this.oldMessagesLoaded != null) // Don't show that messages have been received when we don't have history yet
-			{
-				StateHasChanged();
-			}
+            StateHasChanged();
         });
 
-		hubConnection.On("InvalidID", () =>
+		hubConnection.On("InvalidKey", () =>
         {
-            localStorage.RemoveItem("userID");
             NavigationManager.NavigateTo("/register");
         });
 
-        await hubConnection.StartAsync();
+        await ConnectAndLoad();
+    }
 
-        this.userID = localStorage.GetItem<string>("userID");
-        if (this.userID != null)
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
         {
-			var messageHistory = await hubConnection.InvokeAsync<List<Message>?>("JoinChat", this.userID);
-			if (messageHistory != null)
+            await JsRuntime.InvokeVoidAsync("ScrollToBottom"); // in index.html
+        }
+    }
+
+    private async Task ConnectAndLoad()
+    {
+        while (hubConnection.State != HubConnectionState.Connected)
+        {
+            try
+            {
+                StateHasChanged();
+                await hubConnection.StartAsync();
+            }
+            catch (Exception)
+            {
+                await Task.Delay(1000);
+            }
+        }
+
+        this.oldMessages = new List<Message>();
+        this.oldMessagesLoaded = null;
+        this.newMessages = new List<Message>();
+
+        var loginKey = localStorage.GetItem<string>("loginKey");
+        if (loginKey != null)
+        {
+			var joinResult = await this.hubConnection.InvokeAsync<Tuple<string, List<Message>>?>("JoinChat", loginKey);
+			if (joinResult != null)
 			{	
-				this.oldMessages = messageHistory;
-				this.newMessages = this.newMessages.FindAll(m => !this.oldMessages.Exists(m2 => m2.Id == m.Id));
-				this.oldMessagesLoaded = DateTime.Now;
-				StateHasChanged();
+                this.userID = joinResult.Item1;
+				this.oldMessages = joinResult.Item2.FindAll(m => !this.newMessages.Exists(m2 => m2.Id == m.Id)); // Removes old messages that were already received through ReceivedMessage
+                this.oldMessagesLoaded = DateTime.Now;
+                StateHasChanged();
 			}
+            else
+            {
+                NavigationManager.NavigateTo("/register");
+            }
         }
 		else
 		{
-			NavigationManager.NavigateTo("/");
+			NavigationManager.NavigateTo("/register");
 		}
     }
 
     private async Task DoSend()
     {
-        if (hubConnection is not null)
-        {
-            await hubConnection.SendAsync("SendMessage", this.text);
-        }
+        await hubConnection.SendAsync("SendMessage", this.text);
+        RemoveText();
     }
 
-    public bool IsReady => (hubConnection?.State == HubConnectionState.Connected);
+    private void RemoveText()
+    {
+        this.text = "";
+    }
+
+    private bool NoTextPresent => this.text == null || this.text == "";
+
+    private bool HideSeparator => this.oldMessages.Count == 0;
+
+    private bool IsConnected => hubConnection.State == HubConnectionState.Connected;
+
+    private bool IsDisconnected => !IsConnected;
+
+    private bool SendButtonDisabled => NoTextPresent || IsDisconnected;
+
+    private async Task KeyPressed(KeyboardEventArgs e)
+    {
+        if (this.text != null && this.text.Length <= 1)
+        {
+            StateHasChanged(); // Checks whether we can send, when there are 0 or 1 characters
+        }
+        if (!this.NoTextPresent && this.IsConnected && (e.Code == "Enter" || e.Code == "NumpadEnter"))
+        {
+            await DoSend();
+        }
+    }
 
     public async ValueTask DisposeAsync()
     {

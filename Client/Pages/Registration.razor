@@ -1,65 +1,75 @@
 @page "/register"
 @using Microsoft.AspNetCore.SignalR.Client
+@using Microsoft.AspNetCore.Components.Web
 @inject NavigationManager NavigationManager
 @inject Blazored.LocalStorage.ISyncLocalStorageService localStorage
 @implements IAsyncDisposable
 
 <PageTitle>Registration</PageTitle>
 
-<div class="form-group">
-    <label>
-        Name:
-        <input @bind="name" />
-    </label>
+<h1 class="header centered">Registration</h1>
+
+<div class="container">
+    <div class="row">
+        <div class="col-lg"></div>
+        <div class="col-lg-8 centered">
+            <RegistrationComponent RegistrationFunction="@DoRegister" />
+        </div>
+        <div class="col-lg"></div>
+    </div>
 </div>
-<div class="form-group">
-    <label>
-        Surname:
-        <input @bind="surname" />
-    </label>
-</div>
-<div class="form-group">
-    <label>
-        Username:
-        <input @bind="username" />
-    </label>
-</div>
-<button @onclick="DoRegister" disabled="@(!IsConnected)">Start Chat</button>
+
+
 
 @code {
-    private HubConnection? hubConnection;
-    private string? name;
-    private string? surname;
-    private string? username;
+    private HubConnection hubConnection = new HubConnectionBuilder()
+        .WithUrl(new Uri("https://localhost:7132/chatHub"))
+        .Build();
 
     protected override async Task OnInitializedAsync()
     {
-		if (localStorage.ContainKey("userID"))
-		{
-			NavigationManager.NavigateTo("/");
-		}
-		else
-		{
-			hubConnection = new HubConnectionBuilder()
-				.WithUrl(new Uri("https://localhost:7132/chatHub"))
-				.Build();
+        localStorage.RemoveItem("loginKey");
 
-			await hubConnection.StartAsync();
-		}
+        hubConnection.Closed += async (error) =>
+        {
+            // Reconnects to the hub on disconnect
+            await ConnectAndLoad();
+        };
+
+        await ConnectAndLoad();
     }
 
-    private async Task DoRegister()
+    private async Task ConnectAndLoad()
     {
-        if (hubConnection is not null)
+        while (hubConnection.State != HubConnectionState.Connected)
         {
-            var userID = await hubConnection.InvokeAsync<string>("Register", name, surname, username);
-			localStorage.SetItem("userID", userID);
-			NavigationManager.NavigateTo("/chat");
+            try
+            {
+                await hubConnection.StartAsync();
+            }
+            catch (Exception)
+            {
+                await Task.Delay(1000);
+            }
         }
     }
 
-    public bool IsConnected =>
-        hubConnection?.State == HubConnectionState.Connected;
+    private async Task<bool> DoRegister(string name, string? surname, string username)
+    {
+        if (hubConnection.State == HubConnectionState.Connected)
+        {
+            var loginKey = await hubConnection.InvokeAsync<string>("Register", name, surname, username);
+            if (loginKey != null) {
+                localStorage.SetItem("loginKey", loginKey);
+                localStorage.SetItem("name", name);
+                localStorage.SetItem("surname", surname);
+                localStorage.SetItem("username", username);
+                NavigationManager.NavigateTo("/chat");
+                return true;
+            }
+        }
+        return false;
+    }
 
     public async ValueTask DisposeAsync()
     {
