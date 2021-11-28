@@ -13,28 +13,7 @@
     <div class="row">
         <div class="col-lg"></div>
         <div class="col-lg-8 centered">
-
-            <!-- side by side name/surname inputs -->
-            <div class="container no-padding">
-                <div class="row">
-                    <div class="col input-container">
-                        <input id="name" class="@NameClass" placeholder="Name" @onblur="CheckInput" @bind="name"/>
-                        <br><label for="name" class="errorMsg">@NameErrorMsg</label>
-                    </div>
-                    <div class="col input-container">
-                        <input id="surname" placeholder="Surname" @bind="surname"/>
-                        <br><label for="surname" class="errorMsg"></label>
-                    </div>
-                </div>
-            </div>
-
-            <div class="input-container">
-                <input id="username" class="@UsernameClass" placeholder="Username" @onblur="CheckInput" @bind="username"/>
-                <br><label for="username" class="errorMsg">@UsernameErrorMsg</label>
-            </div>
-
-            <button id="submit" @onclick="DoRegister">Start Chat</button>
-            <br><label for="submit" class="errorMsg">@buttonErrorMsg</label>
+            <RegistrationComponent RegistrationFunction="@DoRegister" />
         </div>
         <div class="col-lg"></div>
     </div>
@@ -46,11 +25,6 @@
     private HubConnection hubConnection = new HubConnectionBuilder()
         .WithUrl(new Uri("https://localhost:7132/chatHub"))
         .Build();
-    private string? name;
-    private string? surname;
-    private string? username;
-    private bool buttonClickedBefore = false;
-    private string buttonErrorMsg = "";
 
     protected override async Task OnInitializedAsync()
     {
@@ -59,26 +33,30 @@
         hubConnection.Closed += async (error) =>
         {
             // Reconnects to the hub on disconnect
-            await hubConnection.StartAsync();
+            await ConnectAndLoad();
         };
 
-        await hubConnection.StartAsync();
+        await ConnectAndLoad();
     }
 
-    private void CheckInput(FocusEventArgs args)
+    private async Task ConnectAndLoad()
     {
-        StateHasChanged();
-    }
-
-    private async Task DoRegister()
-    {
-        buttonClickedBefore = true;
-        if (StateIsInvalid(name) || StateIsInvalid(username))
+        while (hubConnection.State != HubConnectionState.Connected)
         {
-            StateHasChanged();
-            //return;
+            try
+            {
+                await hubConnection.StartAsync();
+            }
+            catch (Exception)
+            {
+                await Task.Delay(1000);
+            }
         }
-        if (hubConnection is not null)
+    }
+
+    private async Task<bool> DoRegister(string name, string? surname, string username)
+    {
+        if (hubConnection.State == HubConnectionState.Connected)
         {
             var loginKey = await hubConnection.InvokeAsync<string>("Register", name, surname, username);
             if (loginKey != null) {
@@ -87,19 +65,11 @@
                 localStorage.SetItem("surname", surname);
                 localStorage.SetItem("username", username);
                 NavigationManager.NavigateTo("/chat");
-            } else {
-                buttonErrorMsg = "Registration failed";
-                StateHasChanged();
+                return true;
             }
         }
+        return false;
     }
-
-	private bool IsNullOrEmpty(string? value) => (value == null || value == "");
-    private bool StateIsInvalid(string? value) => (buttonClickedBefore && IsNullOrEmpty(value));
-    private string NameClass => StateIsInvalid(name) ? "invalid" : "";
-    private string NameErrorMsg => StateIsInvalid(name) ? "Name cannot be empty" : "";
-    private string UsernameClass => StateIsInvalid(username) ? "invalid" : "";
-    private string UsernameErrorMsg => StateIsInvalid(username) ? "Username cannot be empty" : "";
 
     public async ValueTask DisposeAsync()
     {

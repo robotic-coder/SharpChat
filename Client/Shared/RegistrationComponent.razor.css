@@ -1,0 +1,21 @@
+.input-container {
+	padding-bottom: 20px;
+}
+
+input {
+	width: 100%;
+	min-width: 250px;
+}
+
+.container.no-padding {
+	padding-left: 0;
+	padding-right: 0;
+}
+
+.invalid {
+	border: 2px solid red;
+}
+
+.errorMsg {
+	color: red;
+}

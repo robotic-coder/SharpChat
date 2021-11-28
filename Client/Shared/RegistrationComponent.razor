@@ -1,0 +1,58 @@
+<div class="container no-padding">
+	<div class="row">
+		<div class="col input-container">
+			<input id="name" class="@NameClass" placeholder="Name" @onblur="CheckInput" @bind="name"/>
+			<br><label for="name" class="errorMsg">@NameErrorMsg</label>
+		</div>
+		<div class="col input-container">
+			<input id="surname" placeholder="Surname" @bind="surname"/>
+			<br><label for="surname" class="errorMsg"></label>
+		</div>
+	</div>
+</div>
+
+<div class="input-container">
+	<input id="username" class="@UsernameClass" placeholder="Username" @onblur="CheckInput" @bind="username"/>
+	<br><label for="username" class="errorMsg">@UsernameErrorMsg</label>
+</div>
+
+<button id="submit" @onclick="DoRegister">Start Chat</button>
+<br><label for="submit" class="errorMsg">@buttonErrorMsg</label>
+
+@code {
+	[Parameter] public Func<string, string?, string, Task<bool>>? RegistrationFunction { get; set; }
+    private string? name;
+    private string? surname;
+    private string? username;
+    private bool buttonClickedBefore = false;
+    private string buttonErrorMsg = "";
+
+    private void CheckInput(FocusEventArgs args)
+    {
+        StateHasChanged();
+    }
+
+	private async Task DoRegister()
+    {
+        buttonClickedBefore = true;
+        if (name == null || name == "" || username == null || username == "")
+        {
+            StateHasChanged();
+        }
+		else if (RegistrationFunction != null)
+		{
+			var success = await RegistrationFunction(name, surname, username);
+			if (!success)
+			{
+				buttonErrorMsg = "Registration failed";
+				StateHasChanged();
+			}
+		}
+    }
+
+    private bool StateIsInvalid(string? value) => (buttonClickedBefore && (value == null || value == ""));
+    private string NameClass => StateIsInvalid(name) ? "invalid" : "";
+    private string NameErrorMsg => StateIsInvalid(name) ? "Name cannot be empty" : "";
+    private string UsernameClass => StateIsInvalid(username) ? "invalid" : "";
+    private string UsernameErrorMsg => StateIsInvalid(username) ? "Username cannot be empty" : "";
+}
