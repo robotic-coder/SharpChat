@@ -37,7 +37,14 @@
 
 #separator {
 	margin-bottom: 10px;
-	text-align: center;
+	display: flex;
+    align-items: center;
+}
+#separator hr {
+	flex: 1;
+}
+#separator span {
+	margin: 0 10px;
 }
 
 #footer {
